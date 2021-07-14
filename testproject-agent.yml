@@ -1,0 +1,43 @@
+# NOTE: Make sure to update the 'testproject-agent' container volume with a valid local path.
+# To execute this docker-compose, store it in a file (e.g. testproject-agent.yaml) an run:
+# docker-compose -f testproject-agent.yml up -d
+
+version: "3.1"
+services:
+  manager-container:
+    entrypoint: /bin/sh
+    command: -c "./install-utilities.sh && ./run-testproject-agent.sh && ./install-apk.sh"
+    image: docker:dind
+    container_name: manager_container
+    working_dir: /testproject-resources/
+    networks:
+      - docker_network
+    environment:
+      - ANDROID_EMULATOR=testproject_android_container
+      - TP_DEV_TOKEN=$TP_DEV_TOKEN
+    ports:
+      - "8000:8000"
+    volumes:
+      - $PWD:/testproject-resources
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  testproject-android-container:
+    image: budtmo/docker-android-x86-$ANDROID_VERSION
+    container_name: testproject_android_container
+    privileged: true
+    networks:
+      - docker_network
+    ports:
+      - "6080:6080"
+    volumes:
+      - $PWD:/testproject-resources
+      - $PWD/hosts:/etc/hosts
+    environment:
+      - DEVICE=$DEVICE_NAME
+      - APPIUM=true
+      - MOBILE_WEB_TEST=false
+      - AUTO_RECORD=true
+      - TP_DEV_TOKEN=$TP_DEV_TOKEN
+
+networks:
+  docker_network:
